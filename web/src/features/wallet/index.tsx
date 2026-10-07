@@ -129,6 +129,17 @@ export function Wallet(props: WalletProps) {
     fetchUser()
   }, [fetchUser])
 
+  // Patch 0002: the top-up page embedded in Add Funds (TopUpLink) posts
+  // { type: 'topup_link_credited' } when a payment is credited, so the balance refreshes in place.
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return
+      if (event.data?.type === 'topup_link_credited') fetchUser()
+    }
+    window.addEventListener('message', onMessage)
+    return () => window.removeEventListener('message', onMessage)
+  }, [fetchUser])
+
   useEffect(() => {
     if (props.initialShowHistory) {
       setBillingDialogOpen(true)
@@ -339,15 +350,20 @@ export function Wallet(props: WalletProps) {
               />
             </div>
 
-            <AffiliateRewardsCard
-              user={user}
-              affiliateLink={affiliateLink}
-              onTransfer={() => setTransferDialogOpen(true)}
-              complianceConfirmed={
-                topupInfo?.payment_compliance_confirmed !== false
-              }
-              loading={affiliateLoading}
-            />
+            {/* Patch 0002: until the payment compliance terms are confirmed, reward
+                transfer is disabled, so the whole referral card is hidden instead of showing a
+                disabled button with a compliance notice. */}
+            {topupInfo && topupInfo.payment_compliance_confirmed !== false && (
+              <AffiliateRewardsCard
+                user={user}
+                affiliateLink={affiliateLink}
+                onTransfer={() => setTransferDialogOpen(true)}
+                complianceConfirmed={
+                  topupInfo?.payment_compliance_confirmed !== false
+                }
+                loading={affiliateLoading}
+              />
+            )}
           </div>
         </SectionPageLayout.Content>
       </SectionPageLayout>

@@ -53,6 +53,20 @@ import type {
 } from '../types'
 import { CreemProductsSection } from './creem-products-section'
 
+// Patch 0002: when no built-in top-up method is enabled, the admin's top-up link
+// (TopUpLink) is embedded as the Add Funds area, so customers top up without leaving the wallet.
+// Same-origin links only: the embedded page runs with the customer's session, and a third-party
+// page must never be framed here. Clearing TopUpLink restores the stock behaviour.
+function sameOriginTopupUrl(link?: string): string | null {
+  if (!link) return null
+  try {
+    const url = new URL(link, window.location.origin)
+    return url.origin === window.location.origin ? url.href : null
+  } catch {
+    return null
+  }
+}
+
 interface RechargeFormCardProps {
   topupInfo: TopupInfo | null
   presetAmounts: PresetAmount[]
@@ -142,6 +156,7 @@ export function RechargeFormCard({
     Array.isArray(waffoPayMethods) && waffoPayMethods.length > 0
   const minTopup = getMinTopupAmount(topupInfo)
   const redemptionEnabled = topupInfo?.enable_redemption !== false
+  const embeddedTopupUrl = hasAnyTopup ? null : sameOriginTopupUrl(topupLink)
 
   if (loading) {
     return (
@@ -202,7 +217,7 @@ export function RechargeFormCard({
       iconTone='success'
       disableHoverEffect
       action={
-        onOpenBilling ? (
+        onOpenBilling && !embeddedTopupUrl ? (
           <Button
             variant='outline'
             size='sm'
@@ -477,6 +492,12 @@ export function RechargeFormCard({
             </>
           )}
         </div>
+      ) : embeddedTopupUrl ? (
+        <iframe
+          src={embeddedTopupUrl}
+          title={t('Add Funds')}
+          className='block h-[560px] w-full border-0'
+        />
       ) : (
         <Alert>
           <AlertDescription>
@@ -535,7 +556,7 @@ export function RechargeFormCard({
               {t('Redeem')}
             </Button>
           </div>
-          {topupLink && (
+          {topupLink && !embeddedTopupUrl && (
             <p className='text-muted-foreground text-xs'>
               {t('Need a redemption code?')}{' '}
               <a
@@ -550,7 +571,7 @@ export function RechargeFormCard({
             </p>
           )}
         </div>
-      ) : (
+      ) : embeddedTopupUrl ? null : (
         <Alert className='border-t'>
           <AlertDescription>
             {t(
