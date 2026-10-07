@@ -12,9 +12,19 @@ type turnstileCheckResponse struct {
 	Success bool `json:"success"`
 }
 
+// FromCNEdge reports whether the request came in through the mainland-China edge
+// (a reverse proxy in Hong Kong). Cloudflare Turnstile is not supported in mainland China, so
+// these visitors skip it and rely on email verification and rate limits instead.
+// The header is trusted only because the front proxy (Caddy) sets it when the direct peer is the
+// edge server and strips it from every other request. Never expose this server without that proxy.
+// Patch 0001 (mainland-China edge skips Turnstile).
+func FromCNEdge(c *gin.Context) bool {
+	return c.GetHeader("X-SR-Edge") == "cn"
+}
+
 func TurnstileCheck() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if common.TurnstileCheckEnabled {
+		if common.TurnstileCheckEnabled && !FromCNEdge(c) {
 			response := c.Query("turnstile")
 			if response == "" {
 				c.JSON(http.StatusOK, gin.H{
