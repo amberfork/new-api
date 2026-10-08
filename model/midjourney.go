@@ -55,7 +55,8 @@ func GetAllUserTask(userId int, startIdx int, num int, queryParams TaskQueryPara
 	}
 
 	// 获取数据
-	err = query.Order("id desc").Limit(num).Offset(startIdx).Find(&tasks).Error
+	// Like TaskGetAllUserTask: users must not see the channel. Patch 0003.
+	err = query.Omit("channel_id").Order("id desc").Limit(num).Offset(startIdx).Find(&tasks).Error
 	if err != nil {
 		return nil
 	}

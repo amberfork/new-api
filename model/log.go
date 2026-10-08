@@ -116,6 +116,9 @@ func assignDisplayLogIds(logs []*Log, startIdx int) {
 func formatUserLogs(logs []*Log, startIdx int) {
 	for i := range logs {
 		logs[i].ChannelName = ""
+		// Patch 0003: users must not learn which channel or upstream served a request.
+		logs[i].ChannelId = 0
+		logs[i].UpstreamRequestId = ""
 		var otherMap map[string]interface{}
 		otherMap, _ = common.StrToMap(logs[i].Other)
 		if otherMap != nil {
@@ -123,6 +126,10 @@ func formatUserLogs(logs []*Log, startIdx int) {
 			delete(otherMap, "admin_info")
 			// Remove operation-audit details (operator/route info), admin-only.
 			delete(otherMap, "audit_info")
+			// Error logs copy the channel here too (controller/relay.go processChannelError). Patch 0003.
+			delete(otherMap, "channel_id")
+			delete(otherMap, "channel_name")
+			delete(otherMap, "channel_type")
 			// delete(otherMap, "reject_reason")
 			// delete(otherMap, "stream_status")
 		}
