@@ -552,6 +552,8 @@ func doRequest(c *gin.Context, req *http.Request, info *common.RelayInfo) (*http
 	if upID := resp.Header.Get(common2.RequestIdKey); upID != "" {
 		c.Set(common2.UpstreamRequestIdKey, upID)
 	}
+	// Patch 0004: note the model the upstream says it served (passive).
+	common.WatchUpstreamModel(c, info, resp)
 
 	_ = req.Body.Close()
 	_ = c.Request.Body.Close()

@@ -107,6 +107,10 @@ func GenerateTextOtherInfo(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, m
 	}
 
 	AppendChannelAffinityAdminInfo(ctx, adminInfo)
+	// Patch 0004: model sent upstream vs model the upstream says it served.
+	if m := relaycommon.UpstreamModelForLog(ctx); m != nil {
+		adminInfo["sr_upstream_model"] = m
+	}
 
 	other["admin_info"] = adminInfo
 	appendRequestPath(ctx, relayInfo, other)
